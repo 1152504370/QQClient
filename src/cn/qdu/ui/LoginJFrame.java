@@ -3,8 +3,13 @@ package cn.qdu.ui;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.EventQueue;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.net.Socket;
 
@@ -16,6 +21,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.SwingConstants;
@@ -24,17 +30,23 @@ import javax.swing.UIManager;
 import cn.qdu.qq.bis.SysBis;
 import cn.qdu.qq.util.DialogUtil;
 import cn.qdu.qq.util.PropertiesUtil;
-import cn.qdu.qq.vo.Users;
-import javax.swing.JPasswordField;
+import cn.qdu.qq.vo.User;
+import javax.swing.JComboBox;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.border.SoftBevelBorder;
+import javax.swing.border.BevelBorder;
 
 public class LoginJFrame extends JFrame {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
 	private JTextField textField1;
 	private Socket s;//连接服务器的Socket
 	private SysBis sBis;
 	private JPasswordField passwordField;
-
 	/**
 	 * Launch the application.
 	 */
@@ -42,6 +54,7 @@ public class LoginJFrame extends JFrame {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
+					@SuppressWarnings("unused")
 					LoginJFrame frame = new LoginJFrame();
 //					frame.setLocationRelativeTo(null)
 //					frame.setVisible(true);
@@ -51,21 +64,67 @@ public class LoginJFrame extends JFrame {
 			}
 		});
 	}
+	/**
+	 * 登录方法
+	 */
+	public void login(){
+		String name=textField1.getText().trim();
+		String password=new String(passwordField.getPassword()).trim();
+//	使用对象序列化
+//	1.类必须一致（包名加类名）
+//	2.实现序列化接口
+		User u=new User(name,password);
+		try {
+			User u1=sBis.login(u);
+			if(u1==null){
+				//失败
+				DialogUtil.showAlarm("用户名或密码错误！");
+			}else {
+				//成功
+				System.out.println("好友数量:"+u1.getFriends().size());
+//				DialogUtil.showAlarm("登录成功！");
+				dispose();
+				MainJFrame mj=new MainJFrame(u1,s);
+				mj.setLocationRelativeTo(null);
+				mj.setVisible(true);
+			}
+		} catch (IOException e1) {
+			e1.printStackTrace();
+			DialogUtil.showAlarm("服务器异常！");
+		}catch (ClassNotFoundException e2) {
+			e2.printStackTrace();
+		}	
+	}
 
 	/**
 	 * Create the frame.
 	 */
-	public LoginJFrame() {
+	public LoginJFrame(){
+		setTitle("\u767B\u5F55QQ");
+		unnit();
+	}
+	private  void unnit() {
+		addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				try {
+					s.close();
+					dispose();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+		});
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 483, 412);
 		contentPane = new JPanel();
-		contentPane.setBackground(UIManager.getColor("Button.disabledShadow"));
+		contentPane.setBackground(new Color(0, 153, 204));
 		contentPane.setBorder(null);
 		setContentPane(contentPane);
 		
 		JLabel lblNewLabel = new JLabel("");
 		lblNewLabel.setBorder(null);
-		lblNewLabel.setBackground(new Color(0, 255, 255));
+		lblNewLabel.setBackground(Color.CYAN);
 		lblNewLabel.setIcon(new ImageIcon(LoginJFrame.class.getResource("/img/login/3.PNG")));
 		
 		JLabel lblNewLabel_1 = new JLabel("\r\n\u8D26\u53F7\uFF1A");
@@ -78,43 +137,36 @@ public class LoginJFrame extends JFrame {
 		textField1.setColumns(10);
 		
 		JLabel lblNewLabel_4 = new JLabel("\u6CE8\u518C\u8D26\u53F7");
-		lblNewLabel_4.setForeground(new Color(0, 0, 255));
+		lblNewLabel_4.addMouseListener(new MouseAdapter() {
+			/**
+			 * 注册
+			 * @param e
+			 */
+			
+			public void mouseClicked(MouseEvent e) {
+				setVisible(false);//登录窗口消失
+				RegeditJFrame rf=new RegeditJFrame(LoginJFrame.this,s);
+				rf.setLocationRelativeTo(null);
+				rf.setVisible(true);
+			}
+		});
+		lblNewLabel_4.setForeground(Color.WHITE);
 		lblNewLabel_4.setIcon(null);
 		
 		JLabel lblNewLabel_5 = new JLabel("\u53D6\u56DE\u5BC6\u7801");
-		lblNewLabel_5.setForeground(new Color(0, 0, 255));
+		lblNewLabel_5.setForeground(Color.WHITE);
 		lblNewLabel_5.setIcon(null);
 		
 		JButton btnNewButton = new JButton("\u767B\u5F55");
+		btnNewButton.setFont(new Font("华文楷体", Font.PLAIN, 20));
 		btnNewButton.setForeground(new Color(0, 0, 0));
-		btnNewButton.setBackground(new Color(30, 144, 255));
+		btnNewButton.setBackground(UIManager.getColor("Button.light"));
 		btnNewButton.addActionListener(new ActionListener() {
 			/**
 			 * 登录
 			 */
 			public void actionPerformed(ActionEvent e) {
-				String name=textField1.getText().trim();
-				String password=new String(passwordField.getPassword()).trim();
-//			使用对象序列化
-//			1.类必须一致（包名加类名）
-//			2.实现序列化接口
-				Users u=new Users(name,password);
-				try {
-					Users u1=sBis.login(u);
-					if(u1==null){
-						//失败
-						DialogUtil.showAlarm("用户名或密码错误！");
-					}else {
-						//成功
-						System.out.println("好友数量:"+u1.getFriends().size());
-						DialogUtil.showAlarm("登录成功！");
-					}
-				} catch (IOException e1) {
-					e1.printStackTrace();
-					DialogUtil.showAlarm("服务器异常！");
-				}catch (ClassNotFoundException e2) {
-					e2.printStackTrace();
-				}
+				login();
 			}
 		});
 		
@@ -123,6 +175,14 @@ public class LoginJFrame extends JFrame {
 		JCheckBox chckbxNewCheckBox_1 = new JCheckBox("\u81EA\u52A8\u767B\u5F55");
 		
 		passwordField = new JPasswordField();
+		passwordField.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				login();
+			}
+		});
+		
+		JComboBox comboBox = new JComboBox();
+		comboBox.setModel(new DefaultComboBoxModel(new String[] {"\u5728\u7EBF", "\u9690\u8EAB", "\u79BB\u5F00"}));
 		GroupLayout gl_contentPane = new GroupLayout(contentPane);
 		gl_contentPane.setHorizontalGroup(
 			gl_contentPane.createParallelGroup(Alignment.LEADING)
@@ -134,16 +194,18 @@ public class LoginJFrame extends JFrame {
 							.addGroup(gl_contentPane.createParallelGroup(Alignment.LEADING, false)
 								.addComponent(lblNewLabel_2, GroupLayout.PREFERRED_SIZE, 57, GroupLayout.PREFERRED_SIZE)
 								.addComponent(lblNewLabel_1, Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 57, GroupLayout.PREFERRED_SIZE))
-							.addGroup(gl_contentPane.createParallelGroup(Alignment.LEADING)
-								.addGroup(Alignment.TRAILING, gl_contentPane.createSequentialGroup()
+							.addGroup(gl_contentPane.createParallelGroup(Alignment.TRAILING)
+								.addGroup(gl_contentPane.createSequentialGroup()
 									.addGap(18)
 									.addComponent(textField1, GroupLayout.PREFERRED_SIZE, 274, GroupLayout.PREFERRED_SIZE))
-								.addGroup(Alignment.TRAILING, gl_contentPane.createSequentialGroup()
+								.addGroup(gl_contentPane.createSequentialGroup()
 									.addGap(20)
-									.addGroup(gl_contentPane.createParallelGroup(Alignment.LEADING)
+									.addGroup(gl_contentPane.createParallelGroup(Alignment.LEADING, false)
 										.addGroup(gl_contentPane.createSequentialGroup()
 											.addComponent(chckbxNewCheckBox)
-											.addPreferredGap(ComponentPlacement.RELATED, 96, Short.MAX_VALUE)
+											.addPreferredGap(ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+											.addComponent(comboBox, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+											.addGap(28)
 											.addComponent(chckbxNewCheckBox_1))
 										.addComponent(btnNewButton, GroupLayout.PREFERRED_SIZE, 93, GroupLayout.PREFERRED_SIZE)))
 								.addGroup(gl_contentPane.createSequentialGroup()
@@ -173,13 +235,14 @@ public class LoginJFrame extends JFrame {
 					.addGap(18)
 					.addGroup(gl_contentPane.createParallelGroup(Alignment.BASELINE)
 						.addComponent(chckbxNewCheckBox)
-						.addComponent(chckbxNewCheckBox_1))
+						.addComponent(chckbxNewCheckBox_1)
+						.addComponent(comboBox, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(btnNewButton, GroupLayout.PREFERRED_SIZE, 43, GroupLayout.PREFERRED_SIZE)
 					.addGap(23))
 		);
-		gl_contentPane.linkSize(SwingConstants.HORIZONTAL, new Component[] {btnNewButton, passwordField, textField1});
 		gl_contentPane.linkSize(SwingConstants.HORIZONTAL, new Component[] {lblNewLabel_1, lblNewLabel_2});
+		gl_contentPane.linkSize(SwingConstants.HORIZONTAL, new Component[] {textField1, btnNewButton, passwordField});
 		contentPane.setLayout(gl_contentPane);
 		this.setLocationRelativeTo(null);//设置窗口居中
 		this.setVisible(true);//设置窗口显示
